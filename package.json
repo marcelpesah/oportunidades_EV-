@@ -4,7 +4,7 @@
   "description": "Sistema de identificação de oportunidades de apostas com EV positivo usando Sportmonks API real",
   "main": "ev-opportunities-real.js",
   "scripts": {
-    "start": "node ev-opportunities-real.js",
+    "start": "node ev-opportunities-system.js",
     "dev": "NODE_ENV=development node ev-opportunities-real.js"
   },
   "keywords": [
