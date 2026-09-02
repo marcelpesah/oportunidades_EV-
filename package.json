@@ -5,7 +5,7 @@
   "main": "ev-opportunities-real.js",
   "scripts": {
     "start": "node ev-opportunities-system.js",
-    "dev": "NODE_ENV=development node ev-opportunities-real.js"
+    "dev": "NODE_ENV=development node ev-opportunities-system.js"
   },
   "keywords": [
     "sports-betting",
