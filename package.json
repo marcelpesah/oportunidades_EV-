@@ -1,0 +1,30 @@
+{
+  "name": "ev-opportunities-system-pro",
+  "version": "2.5.0",
+  "description": "Sistema profissional de identificação de oportunidades de apostas com EV+ e GREEN/RED automático usando Sportmonks API real",
+  "main": "ev-opportunities-system.js",
+  "scripts": {
+    "start": "node ev-opportunities-system.js",
+    "dev": "NODE_ENV=development node ev-opportunities-system.js"
+  },
+  "keywords": [
+    "sports-betting",
+    "ev-opportunities",
+    "telegram-bot",
+    "sportmonks",
+    "football",
+    "green-red",
+    "roi-tracking"
+  ],
+  "author": "marcelpesah",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.5",
+    "dotenv": "^16.3.1",
+    "node-telegram-bot-api": "^0.61.0",
+    "pg": "^8.11.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
