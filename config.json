@@ -1,0 +1,66 @@
+{
+  "LIGAS": {
+    "TIER1": {
+      "39": "Premier League",
+      "140": "La Liga",
+      "135": "Serie A",
+      "78": "Bundesliga",
+      "61": "Ligue 1",
+      "71": "Série A Brasil",
+      "238": "Liga Portugal",
+      "87": "Eredivisie"
+    },
+    "TIER2": {
+      "40": "Championship (Inglaterra)",
+      "141": "Segunda División (Espanha)",
+      "136": "Serie B (Itália)",
+      "79": "2. Bundesliga (Alemanha)",
+      "62": "Ligue 2 (França)",
+      "72": "Série B (Brasil)",
+      "239": "Segunda Liga (Portugal)",
+      "88": "Eerste Divisie (Holanda)"
+    },
+    "TIER3": {
+      "50": "Scottish Premiership",
+      "51": "Belgian Pro League",
+      "52": "Turkish Super Lig",
+      "53": "Greek Super League",
+      "54": "Swiss Super League"
+    }
+  },
+  "FILTROS": {
+    "EV_MINIMO": 5,
+    "ODD_MINIMA": 1.5,
+    "ODD_MAXIMA": 20,
+    "PROBABILIDADE_MINIMA": 0.3,
+    "PROBABILIDADE_MAXIMA": 0.95
+  },
+  "ALERTAS": {
+    "PRE_LIVE_60": true,
+    "PRE_LIVE_30": true,
+    "LIVE": true,
+    "LIVE_CUTOFF_HT": 35,
+    "LIVE_CUTOFF_FT": 75
+  },
+  "MERCADOS": [
+    "Over/Under Gols",
+    "Handicap Asiático",
+    "Over/Under Escanteios",
+    "Over/Under Cartões",
+    "Primeiro Gol",
+    "Resultado Exato"
+  ],
+  "SCHEDULERS": {
+    "PRE_LIVE_INTERVALO_MIN": 5,
+    "LIVE_INTERVALO_MIN": 2,
+    "RESULTADO_CHECK_INTERVALO_MIN": 5,
+    "RESUMO_DIARIO_HORA": 23,
+    "RESUMO_DIARIO_MINUTO": 59
+  },
+  "NOTIFICACOES": {
+    "ENVIAR_PRELIVE": true,
+    "ENVIAR_LIVE": true,
+    "ENVIAR_RESULTADO": true,
+    "ENVIAR_RESUMO_DIARIO": true
+  }
+}
