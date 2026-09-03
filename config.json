@@ -29,7 +29,7 @@
     }
   },
   "FILTROS": {
-    "EV_MINIMO": 5,
+    "EV_MINIMO": 3,
     "ODD_MINIMA": 1.5,
     "ODD_MAXIMA": 20,
     "PROBABILIDADE_MINIMA": 0.3,
