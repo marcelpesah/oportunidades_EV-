@@ -35,6 +35,7 @@ class EVOpportunitiesSystemPRO {
 
   async initializeDatabase() {
     try {
+      // Criar tabela se não existir
       await pool.query(`
         CREATE TABLE IF NOT EXISTS opportunities (
           id SERIAL PRIMARY KEY,
@@ -56,7 +57,34 @@ class EVOpportunitiesSystemPRO {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+      `);
 
+      // Adicionar colunas que possam estar faltando
+      const columnsToAdd = [
+        { name: 'green_red', type: 'VARCHAR(5)' },
+        { name: 'roi_percentage', type: 'DECIMAL(5,2)' },
+        { name: 'result', type: 'VARCHAR(20)' },
+        { name: 'result_updated_at', type: 'TIMESTAMP' }
+      ];
+
+      for (const col of columnsToAdd) {
+        try {
+          await pool.query(`
+            ALTER TABLE opportunities 
+            ADD COLUMN ${col.name} ${col.type};
+          `);
+          console.log(`✅ Coluna adicionada: ${col.name}`);
+        } catch (err) {
+          if (err.message.includes('already exists')) {
+            if (DEBUG) console.log(`⚠️ Coluna ${col.name} já existe`);
+          } else {
+            console.error(`❌ Erro ao adicionar ${col.name}:`, err.message);
+          }
+        }
+      }
+
+      // Criar tabela de daily stats
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS daily_stats (
           id SERIAL PRIMARY KEY,
           stat_date DATE DEFAULT CURRENT_DATE,
@@ -69,23 +97,26 @@ class EVOpportunitiesSystemPRO {
         );
       `);
 
-      console.log('✅ Database initialized');
+      console.log('✅ Database inicializado com sucesso');
     } catch (error) {
       console.error('❌ Database error:', error.message);
     }
   }
 
   getAllLeagueIds() {
-    const ids = [];
-    Object.assign({}, CONFIG.LIGAS.TIER1, CONFIG.LIGAS.TIER2, CONFIG.LIGAS.TIER3);
-    Object.keys(Object.assign({}, CONFIG.LIGAS.TIER1, CONFIG.LIGAS.TIER2, CONFIG.LIGAS.TIER3)).forEach(id => ids.push(id));
-    return ids.join(',');
+    const allLeagues = Object.assign(
+      {},
+      CONFIG.LIGAS.TIER1,
+      CONFIG.LIGAS.TIER2,
+      CONFIG.LIGAS.TIER3
+    );
+    return Object.keys(allLeagues).join(',');
   }
 
   async fetchUpcomingMatches() {
     try {
       const leagueIds = this.getAllLeagueIds();
-      
+
       const response = await axios.get(
         'https://api.sportmonks.com/v3/fixtures',
         {
@@ -143,9 +174,10 @@ class EVOpportunitiesSystemPRO {
 
       probability = Math.min(0.95, Math.max(0.05, probability));
 
-      // Filtrar por limites de probabilidade
-      if (probability < CONFIG.FILTROS.PROBABILIDADE_MINIMA || 
-          probability > CONFIG.FILTROS.PROBABILIDADE_MAXIMA) {
+      if (
+        probability < CONFIG.FILTROS.PROBABILIDADE_MINIMA ||
+        probability > CONFIG.FILTROS.PROBABILIDADE_MAXIMA
+      ) {
         return null;
       }
 
@@ -174,23 +206,28 @@ class EVOpportunitiesSystemPRO {
 
   async checkPreLiveOpportunities() {
     try {
-      console.log('🔍 Checking PRÉ-LIVE opportunities...');
+      if (DEBUG) console.log('🔍 Checking PRÉ-LIVE opportunities...');
 
       const matches = await this.fetchUpcomingMatches();
 
       for (const match of matches) {
         const leagueId = match.league_id;
         const tier = this.getTierByLeagueId(leagueId);
-        const leagueName = CONFIG.LIGAS[`${tier === 'TIER1' ? 'TIER1' : tier === 'TIER2' ? 'TIER2' : 'TIER3'}`]?.[leagueId];
+        
+        let leagueName;
+        if (tier === 'TIER1') leagueName = CONFIG.LIGAS.TIER1[leagueId];
+        else if (tier === 'TIER2') leagueName = CONFIG.LIGAS.TIER2[leagueId];
+        else if (tier === 'TIER3') leagueName = CONFIG.LIGAS.TIER3[leagueId];
 
         if (!leagueName) continue;
 
         const kickoffTime = new Date(match.starting_at);
         const minutesUntilKickoff = (kickoffTime - new Date()) / (1000 * 60);
 
-        if ((minutesUntilKickoff > 59 && minutesUntilKickoff < 61) ||
-            (minutesUntilKickoff > 29 && minutesUntilKickoff < 31)) {
-
+        if (
+          (minutesUntilKickoff > 59 && minutesUntilKickoff < 61) ||
+          (minutesUntilKickoff > 29 && minutesUntilKickoff < 31)
+        ) {
           for (const market of CONFIG.MERCADOS) {
             const probability = this.calculateProbability(match, market);
             if (!probability) continue;
@@ -228,7 +265,8 @@ class EVOpportunitiesSystemPRO {
 
   async sendAlert(opportunity, type) {
     try {
-      const tierEmoji = opportunity.tier === 'TIER1' ? '🔴' : opportunity.tier === 'TIER2' ? '🟡' : '🟢';
+      const tierEmoji =
+        opportunity.tier === 'TIER1' ? '🔴' : opportunity.tier === 'TIER2' ? '🟡' : '🟢';
 
       const message = `
 🎯 *OPORTUNIDADE EV+* ${type}
@@ -269,14 +307,13 @@ ${tierEmoji} *${opportunity.league}* [${opportunity.tier}]
 
   async checkResultsAndUpdateGreenRed() {
     try {
-      console.log('📊 Checking results...');
+      if (DEBUG) console.log('📊 Checking results...');
 
       const matches = await this.fetchUpcomingMatches();
 
       for (const match of matches) {
         if (match.status !== 'FINISHED') continue;
 
-        // Buscar oportunidades deste match
         const result = await pool.query(
           `SELECT * FROM opportunities WHERE match_id = $1 AND status = 'ALERTED'`,
           [match.id]
@@ -293,7 +330,6 @@ ${tierEmoji} *${opportunity.league}* [${opportunity.tier}]
           let resultado = null;
           let greenRed = null;
 
-          // Determinar resultado baseado no mercado
           if (opp.market.includes('Over') && opp.market.includes('Gols')) {
             const threshold = opp.market.includes('2.5') ? 2.5 : opp.market.includes('3') ? 3 : 2;
             resultado = totalGoals >= threshold ? 'HIT' : 'MISS';
@@ -301,9 +337,10 @@ ${tierEmoji} *${opportunity.league}* [${opportunity.tier}]
 
           if (resultado) {
             greenRed = resultado === 'HIT' ? 'GREEN' : 'RED';
-            const roiPercentage = greenRed === 'GREEN' ? 
-              (parseFloat(opp.ev_percentage)) : 
-              (-100 * (1 / parseFloat(opp.odd)));
+            const roiPercentage =
+              greenRed === 'GREEN'
+                ? parseFloat(opp.ev_percentage)
+                : -100 * (1 / parseFloat(opp.odd));
 
             await pool.query(
               `UPDATE opportunities 
@@ -312,7 +349,6 @@ ${tierEmoji} *${opportunity.league}* [${opportunity.tier}]
               ['RESOLVED', resultado, greenRed, roiPercentage, opp.id]
             );
 
-            // Enviar notificação de resultado
             const emoji = greenRed === 'GREEN' ? '🟢' : '🔴';
             const resultMsg = `
 ${emoji} *RESULTADO - ${greenRed}*
@@ -343,23 +379,25 @@ ROI: ${roiPercentage.toFixed(2)}%
         `SELECT 
            COUNT(*) as total,
            SUM(CASE WHEN green_red = 'GREEN' THEN 1 ELSE 0 END) as profitable,
-           AVG(ev_percentage) as avg_ev,
-           AVG(roi_percentage) as avg_roi,
-           SUM(CASE WHEN green_red = 'GREEN' THEN roi_percentage ELSE -roi_percentage END) as total_roi
+           AVG(CAST(ev_percentage AS FLOAT)) as avg_ev,
+           AVG(CAST(roi_percentage AS FLOAT)) as avg_roi,
+           SUM(CASE WHEN green_red = 'GREEN' THEN CAST(roi_percentage AS FLOAT) ELSE -CAST(roi_percentage AS FLOAT) END) as total_roi
          FROM opportunities 
          WHERE DATE(created_at) = CURRENT_DATE AND status = 'RESOLVED'`
       );
 
       const row = stats.rows[0];
-      const winRate = row.total > 0 ? ((row.profitable / row.total) * 100).toFixed(1) : 0;
+      const total = parseInt(row.total) || 0;
+      const profitable = parseInt(row.profitable) || 0;
+      const winRate = total > 0 ? ((profitable / total) * 100).toFixed(1) : 0;
 
       const message = `
 📊 *RESUMO DIÁRIO - ${new Date().toLocaleDateString('pt-BR')}*
 
 📈 Oportunidades identificadas: ${this.dailyStats.identified}
 ✅ Oportunidades resolvidas: ${this.dailyStats.resolved}
-🟢 Oportunidades lucrativas (GREEN): ${row.profitable || 0}
-🔴 Oportunidades no prejuízo (RED): ${(row.total - row.profitable) || 0}
+🟢 Oportunidades lucrativas (GREEN): ${profitable}
+🔴 Oportunidades no prejuízo (RED): ${total - profitable}
 💹 Taxa de acerto: ${winRate}%
 📊 EV médio: ${(row.avg_ev || 0).toFixed(2)}%
 💰 ROI médio: ${(row.avg_roi || 0).toFixed(2)}%
@@ -391,8 +429,10 @@ ROI: ${roiPercentage.toFixed(2)}%
     if (CONFIG.NOTIFICACOES.ENVIAR_RESUMO_DIARIO) {
       this.schedulers.dailySummary = setInterval(() => {
         const now = new Date();
-        if (now.getHours() === CONFIG.SCHEDULERS.RESUMO_DIARIO_HORA && 
-            now.getMinutes() === CONFIG.SCHEDULERS.RESUMO_DIARIO_MINUTO) {
+        if (
+          now.getHours() === CONFIG.SCHEDULERS.RESUMO_DIARIO_HORA &&
+          now.getMinutes() === CONFIG.SCHEDULERS.RESUMO_DIARIO_MINUTO
+        ) {
           this.sendDailySummary();
         }
       }, 60 * 1000);
@@ -417,8 +457,8 @@ ROI: ${roiPercentage.toFixed(2)}%
 
 📊 Conectado ao Sportmonks API (REAL)
 🎯 Monitorando PRÉ-LIVE a cada ${CONFIG.SCHEDULERS.PRE_LIVE_INTERVALO_MIN} min
-📍 Ligas TIER 1: ${Object.values(CONFIG.LIGAS.TIER1).slice(0,4).join(', ')}...
-📍 Ligas TIER 2: ${Object.values(CONFIG.LIGAS.TIER2).slice(0,3).join(', ')}...
+📍 Ligas TIER 1: ${Object.values(CONFIG.LIGAS.TIER1).slice(0, 4).join(', ')}...
+📍 Ligas TIER 2: ${Object.values(CONFIG.LIGAS.TIER2).slice(0, 3).join(', ')}...
 💰 Limite EV: ${CONFIG.FILTROS.EV_MINIMO}%
 💵 Odds: ${CONFIG.FILTROS.ODD_MINIMA} - ${CONFIG.FILTROS.ODD_MAXIMA}
 
@@ -430,7 +470,6 @@ Sistema pronto! 🚀
       `;
 
       await bot.sendMessage(TELEGRAM_USER_ID, startMessage, { parse_mode: 'Markdown' });
-
     } catch (error) {
       console.error('❌ Critical error:', error.message);
     }
