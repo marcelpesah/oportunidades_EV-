@@ -4,14 +4,12 @@ const { Pool } = require('pg');
 require('dotenv').config();
 const fs = require('fs');
 
-// Configurações
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_USER_ID = process.env.TELEGRAM_USER_ID;
 const STATPAL_API_KEY = process.env.STATPAL_API_KEY;
 const DATABASE_URL = process.env.DATABASE_URL;
 const DEBUG = process.env.DEBUG === 'true';
 
-// Carregar configurações
 let CONFIG = {};
 try {
   CONFIG = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
@@ -20,17 +18,14 @@ try {
   process.exit(1);
 }
 
-// Pool PostgreSQL
 const pool = new Pool({ connectionString: DATABASE_URL });
-
-// Bot Telegram
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: false });
 
 class EVOpportunitiesSystemPRO {
   constructor() {
     this.dailyStats = { identified: 0, resolved: 0, profitable: 0 };
     this.statpalBaseUrl = 'https://statpal.io/api/v1/soccer';
-    this.liveMatches = new Set(); // Rastreia matches em LIVE
+    this.liveMatches = new Set();
   }
 
   async initDatabase() {
@@ -56,7 +51,6 @@ class EVOpportunitiesSystemPRO {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      
       console.log('✅ Database initialized');
     } catch (err) {
       console.error('❌ Database error:', err.message);
@@ -81,9 +75,7 @@ class EVOpportunitiesSystemPRO {
         },
         timeout: 10000
       });
-
       if (DEBUG) console.log(`📡 Retrieved ${response.data.data?.length || 0} matches from StatPal`);
-      
       return response.data.data || [];
     } catch (error) {
       console.error('❌ StatPal API Error:', error.message);
@@ -95,7 +87,6 @@ class EVOpportunitiesSystemPRO {
     try {
       const homeStats = match.statistics?.home || {};
       const awayStats = match.statistics?.away || {};
-      
       let probability = 0.5;
 
       if (market === 'vitoria_1x2') {
@@ -116,7 +107,6 @@ class EVOpportunitiesSystemPRO {
         const totalCards = (parseInt(homeStats.yellow_cards) || 0) + (parseInt(awayStats.yellow_cards) || 0);
         probability = Math.min(0.88, 0.35 + (totalCards * 0.12));
       }
-
       return probability;
     } catch (err) {
       return null;
@@ -127,12 +117,10 @@ class EVOpportunitiesSystemPRO {
     try {
       const odds = match.odds || [];
       if (!odds || odds.length === 0) return null;
-
       const relevantOdds = odds
         .filter(o => o.market === market)
         .map(o => parseFloat(o.value))
         .filter(o => !isNaN(o));
-
       return relevantOdds.length > 0 ? Math.max(...relevantOdds) : null;
     } catch (err) {
       return null;
@@ -152,9 +140,7 @@ class EVOpportunitiesSystemPRO {
   filterOpportunity(probability, odd, ev, market, tier) {
     const marketConfig = CONFIG.MERCADOS_CONFIG[market];
     if (!marketConfig) return false;
-
     const evMinimo = this.getEVMinimo(market, tier);
-    
     return ev >= evMinimo && 
            odd >= marketConfig.odd.minima && 
            odd <= marketConfig.odd.maxima &&
@@ -165,42 +151,33 @@ class EVOpportunitiesSystemPRO {
   async checkPreLiveOpportunities() {
     try {
       if (DEBUG) console.log('🔍 [PRÉ-LIVE] Checking opportunities...');
-
       const matches = await this.fetchMatches();
       
       for (const match of matches) {
         if (match.status !== 'scheduled' && match.status !== 'pre_live') continue;
-
         const leagueId = match.league?.id;
         const tier = this.getTier(leagueId);
         const leagueName = this.getLeagueName(leagueId);
-        
         const kickoffTime = new Date(match.starting_at || match.kickoff_time);
         const minutesUntilKickoff = (kickoffTime - new Date()) / (1000 * 60);
 
-        // Check PRÉ-LIVE: 60 min e 30 min antes
         if ((minutesUntilKickoff > 59 && minutesUntilKickoff < 61) || 
             (minutesUntilKickoff > 29 && minutesUntilKickoff < 31)) {
           
           const homeTeam = match.home?.name || 'Unknown';
           const awayTeam = match.away?.name || 'Unknown';
-
-          // Testa os 5 mercados
           const markets = Object.keys(CONFIG.MERCADOS_CONFIG).filter(m => CONFIG.MERCADOS_CONFIG[m].ativo);
           
           for (const market of markets) {
             const probability = this.calculateProbability(match, market);
             if (!probability) continue;
-
             const odd = this.getBestOdds(match, market);
             if (!odd) continue;
-
             const ev = this.calculateEV(probability, odd);
 
             if (this.filterOpportunity(probability, odd, ev, market, tier)) {
               const tierEmoji = tier === 'TIER1' ? '🔴' : tier === 'TIER2' ? '🟡' : '🟢';
               const marketName = CONFIG.MERCADOS_CONFIG[market].nome;
-
               const message = `
 🎯 *OPORTUNIDADE EV+* PRÉ-LIVE
 
@@ -234,20 +211,16 @@ ${tierEmoji} *${leagueName}* [${tier}]
   async checkLiveOpportunities() {
     try {
       if (DEBUG) console.log('⚡ [LIVE] Checking live opportunities...');
-
       const matches = await this.fetchMatches();
       
       for (const match of matches) {
         if (match.status !== 'live') continue;
-
         const leagueId = match.league?.id;
         const tier = this.getTier(leagueId);
         const leagueName = this.getLeagueName(leagueId);
-        
         const homeTeam = match.home?.name || 'Unknown';
         const awayTeam = match.away?.name || 'Unknown';
 
-        // Apenas processa se ainda não tá rastreado
         if (this.liveMatches.has(match.id)) continue;
         this.liveMatches.add(match.id);
 
@@ -256,17 +229,14 @@ ${tierEmoji} *${leagueName}* [${tier}]
         for (const market of markets) {
           const probability = this.calculateProbability(match, market);
           if (!probability) continue;
-
           const odd = this.getBestOdds(match, market);
           if (!odd) continue;
-
           const ev = this.calculateEV(probability, odd);
 
           if (this.filterOpportunity(probability, odd, ev, market, tier)) {
             const tierEmoji = tier === 'TIER1' ? '🔴' : tier === 'TIER2' ? '🟡' : '🟢';
             const marketName = CONFIG.MERCADOS_CONFIG[market].nome;
             const elapsed = match.elapsed || 0;
-
             const message = `
 ⚡ *OPORTUNIDADE EV+* AO VIVO
 
@@ -299,12 +269,10 @@ ${tierEmoji} *${leagueName}* [${tier}]
   async checkResultsAndUpdateGreenRed() {
     try {
       if (DEBUG) console.log('📊 Checking results...');
-
       const matches = await this.fetchMatches();
 
       for (const match of matches) {
         if (match.status !== 'finished') continue;
-
         this.liveMatches.delete(match.id);
 
         const result = await pool.query(
@@ -317,7 +285,6 @@ ${tierEmoji} *${leagueName}* [${tier}]
             const homeGoals = match.stats?.home?.goals || 0;
             const awayGoals = match.stats?.away?.goals || 0;
             const totalGoals = homeGoals + awayGoals;
-
             let resultado = null;
             let greenRed = null;
 
@@ -381,7 +348,6 @@ ROI: ${roiPercentage.toFixed(2)}%
       const total = parseInt(row.total) || 0;
       const profitable = parseInt(row.profitable) || 0;
       const winRate = total > 0 ? ((profitable / total) * 100).toFixed(1) : 0;
-
       const message = `
 📊 *RESUMO DIÁRIO - ${new Date().toLocaleDateString('pt-BR')}*
 
@@ -406,22 +372,17 @@ ROI: ${roiPercentage.toFixed(2)}%
   start() {
     console.log('🚀 EV Opportunities System PRO v2.0');
     console.log('📡 Connecting to StatPal API...');
-
     this.initDatabase();
 
-    // Check PRÉ-LIVE every 5 minutes
     const prelivInterval = (CONFIG.SCHEDULERS.PRE_LIVE_INTERVALO_MIN || 5) * 60 * 1000;
     setInterval(() => this.checkPreLiveOpportunities(), prelivInterval);
 
-    // Check LIVE every 5 seconds
     const liveInterval = (CONFIG.SCHEDULERS.LIVE_INTERVALO_SEG || 5) * 1000;
     setInterval(() => this.checkLiveOpportunities(), liveInterval);
 
-    // Check results every 5 minutes
     const resultInterval = (CONFIG.SCHEDULERS.RESULTADO_CHECK_INTERVALO_MIN || 5) * 60 * 1000;
     setInterval(() => this.checkResultsAndUpdateGreenRed(), resultInterval);
 
-    // Daily summary at 23:59
     setInterval(() => {
       const now = new Date();
       if (now.getHours() === (CONFIG.SCHEDULERS.RESUMO_DIARIO_HORA || 23) && 
@@ -446,4 +407,20 @@ ROI: ${roiPercentage.toFixed(2)}%
 🟡 TIER2 (21 ligas) - EV mín: 2.5-4%
 🟢 TIER3 (23 ligas) - EV mín: 3.5-5.5%
 
-🟢
+🟢 GREEN/RED: Ativado
+📊 ROI Tracking: Ativado
+📈 Relatórios: Diários
+
+Sistema pronto para validação! 🚀
+    `;
+
+    bot.sendMessage(TELEGRAM_USER_ID, startMsg, { parse_mode: 'Markdown' })
+      .catch(err => console.error('❌ Telegram error:', err.message));
+  }
+}
+
+const system = new EVOpportunitiesSystemPRO();
+system.start();
+
+process.on('unhandledRejection', (reason) => console.error('❌ Rejection:', reason));
+process.on('uncaughtException', (error) => console.error('❌ Exception:', error));
