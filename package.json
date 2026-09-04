@@ -7,27 +7,12 @@
     "start": "node ev-opportunities-system.js",
     "dev": "MODE_ENV=development node ev-opportunities-system.js",
     "sync": "node sync-postgres-to-sheets.js"
-  }
-}
-  "keywords": [
-    "sports-betting",
-    "ev-opportunities",
-    "telegram-bot",
-    "sportmonks",
-    "football",
-    "green-red",
-    "roi-tracking"
-  ],
-  "author": "marcelpesah",
-  "license": "MIT",
+  },
   "dependencies": {
     "axios": "^1.6.5",
     "dotenv": "^16.3.1",
     "googleapis": "^118.0.0",
     "node-telegram-bot-api": "^0.61.0",
     "pg": "^8.11.3"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   }
 }
