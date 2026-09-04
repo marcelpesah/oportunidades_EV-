@@ -2,22 +2,29 @@
   "LIGAS": {
     "TIER1": {
       "39": "Premier League",
-      "40": "Championship",
-      "61": "Ligue 1",
-      "71": "Série A Brasil",
-      "75": "Super Lig",
-      "78": "Bundesliga",
-      "87": "Eredivisie",
-      "100": "Superliga Argentina",
-      "135": "Serie A",
       "140": "La Liga",
-      "141": "Segunda División",
+      "135": "Serie A",
+      "78": "Bundesliga",
+      "61": "Ligue 1",
+      "238": "Liga Portugal",
+      "87": "Eredivisie",
+      "75": "Super Lig",
+      "71": "Série A Brasil",
+      "100": "Superliga Argentina",
+      "262": "Liga MX",
       "179": "MLS",
       "203": "Primeira Liga",
-      "238": "Liga Portugal",
-      "262": "Liga MX"
+      "40": "Championship",
+      "141": "Segunda División",
+      "79": "2. Bundesliga",
+      "62": "Ligue 2",
+      "73": "Primeira Divisão Portugal",
+      "88": "Eerste Divisie",
+      "136": "Serie B"
     },
     "TIER2": {
+      "142": "Segunda B",
+      "180": "USL Championship",
       "50": "Scottish Premiership",
       "51": "Belgian Pro League",
       "52": "Super League Greece",
@@ -26,16 +33,21 @@
       "55": "Ekstraklasa Poland",
       "57": "Superliga Denmark",
       "58": "Allsvenskan Sweden",
-      "62": "Ligue 2",
-      "73": "Primeira Divisão Portugal",
-      "79": "2. Bundesliga",
-      "88": "Eerste Divisie",
-      "136": "Serie B",
-      "142": "Segunda B",
-      "180": "USL Championship"
+      "59": "Eliteserien Norway",
+      "63": "Erste Liga Austria",
+      "64": "Superliga Hungary",
+      "65": "Czech Liga",
+      "66": "Slovak Liga",
+      "67": "Romanian Liga",
+      "68": "Bulgarian Liga",
+      "69": "Croatian Liga",
+      "70": "Serbian Liga",
+      "72": "Turkish Liga"
     },
     "TIER3": {
-      "59": "Eliteserien Norway",
+      "200": "Premier League Egypt",
+      "201": "Premier League South Africa",
+      "202": "Premier League Nigeria",
       "118": "K League South Korea",
       "119": "J League Japan",
       "120": "Super League China",
@@ -47,9 +59,16 @@
       "126": "UAE Pro League",
       "127": "Turkish Super League",
       "128": "Israeli Premier League",
-      "200": "Premier League Egypt",
-      "201": "Premier League South Africa",
-      "202": "Premier League Nigeria"
+      "129": "Lebanese Liga",
+      "130": "Jordanian Liga",
+      "131": "Bahraini Liga",
+      "132": "Qatari Liga",
+      "133": "Kuwaiti Liga",
+      "134": "Oman Liga",
+      "137": "Peruvian Liga",
+      "138": "Colombian Liga",
+      "139": "Chilean Liga",
+      "143": "Uruguayan Liga"
     }
   },
   "MERCADOS_CONFIG": {
@@ -58,10 +77,10 @@
       "ativo": true,
       "odd": {
         "minima": 1.1,
-        "maxima": 20
+        "maxima": 20.0
       },
       "ev_minimo": {
-        "TIER1": 2,
+        "TIER1": 2.0,
         "TIER2": 2.5,
         "TIER3": 3.5
       }
@@ -71,12 +90,12 @@
       "ativo": true,
       "odd": {
         "minima": 1.1,
-        "maxima": 20
+        "maxima": 20.0
       },
       "ev_minimo": {
-        "TIER1": 2,
+        "TIER1": 2.0,
         "TIER2": 2.5,
-        "TIER3": 4
+        "TIER3": 4.0
       }
     },
     "handicap_asiatico": {
@@ -84,11 +103,11 @@
       "ativo": true,
       "odd": {
         "minima": 1.1,
-        "maxima": 20
+        "maxima": 20.0
       },
       "ev_minimo": {
         "TIER1": 2.5,
-        "TIER2": 3,
+        "TIER2": 3.0,
         "TIER3": 4.5
       }
     },
@@ -97,12 +116,12 @@
       "ativo": true,
       "odd": {
         "minima": 1.1,
-        "maxima": 20
+        "maxima": 20.0
       },
       "ev_minimo": {
         "TIER1": 2.5,
         "TIER2": 3.5,
-        "TIER3": 5
+        "TIER3": 5.0
       }
     },
     "over_under_cartoes": {
@@ -110,17 +129,17 @@
       "ativo": true,
       "odd": {
         "minima": 1.1,
-        "maxima": 20
+        "maxima": 20.0
       },
       "ev_minimo": {
-        "TIER1": 3,
-        "TIER2": 4,
+        "TIER1": 3.0,
+        "TIER2": 4.0,
         "TIER3": 5.5
       }
     }
   },
   "PARAMETROS_GLOBAIS": {
-    "probabilidade_minima": 0.3,
+    "probabilidade_minima": 0.30,
     "probabilidade_maxima": 0.95
   },
   "SCHEDULERS": {
@@ -130,3 +149,4 @@
     "RESUMO_DIARIO_HORA": 23,
     "RESUMO_DIARIO_MINUTO": 59
   }
+}
