@@ -84,42 +84,22 @@ class EVOpportunitiesSystemPRO {
     }
   }
 
-  // ============================================================
-  // PRÉ-LIVE: CÁLCULO BASEADO EM HISTÓRICO DOS TIMES
-  // ============================================================
   calculateProbabilityPreLive(match, market) {
     try {
       let probability = 0.5;
 
       if (market === 'vitoria_1x2') {
-        const homeTeam = match.home?.name || '';
-        const awayTeam = match.away?.name || '';
-        
-        // Simulação: em produção, puxar histórico do banco de dados
-        // Por enquanto, usa padrão conservador
-        probability = 0.50; // 50% - sem dados, é aposta equilibrada
-        
-      } else if (market === 'ambos_marcam') {
-        // Ambos marcam em PRÉ-LIVE: usar histórico de quantas vezes aconteceu
-        // Padrão conservador: 45%
-        probability = 0.45;
-        
-      } else if (market === 'handicap_asiatico') {
-        // Handicap: usar forma histórica do time mandante
-        probability = 0.48;
-        
-      } else if (market === 'over_under_escanteios') {
-        // Escanteios: usar média histórica das ligas/times
-        // Padrão: 50% chance de over 8.5
         probability = 0.50;
-        
+      } else if (market === 'ambos_marcam') {
+        probability = 0.45;
+      } else if (market === 'handicap_asiatico') {
+        probability = 0.48;
+      } else if (market === 'over_under_escanteios') {
+        probability = 0.50;
       } else if (market === 'over_under_cartoes') {
-        // Cartões: usar histórico de cartões por partida na liga
-        // Padrão conservador: 45%
         probability = 0.45;
       }
 
-      // Aplicar limites globais
       probability = Math.min(0.95, Math.max(0.30, probability));
       return probability;
     } catch (err) {
@@ -127,9 +107,6 @@ class EVOpportunitiesSystemPRO {
     }
   }
 
-  // ============================================================
-  // LIVE: CÁLCULO BASEADO EM DADOS EM TEMPO REAL
-  // ============================================================
   calculateProbabilityLive(match, market) {
     try {
       const homeStats = match.statistics?.home || {};
@@ -137,56 +114,35 @@ class EVOpportunitiesSystemPRO {
       let probability = 0.5;
 
       if (market === 'vitoria_1x2') {
-        // LIVE: xG real do jogo até agora
         const homeXG = parseFloat(homeStats.expected_goals) || 0;
         const awayXG = parseFloat(awayStats.expected_goals) || 0;
-        
-        // Quanto mais xG, mais chance de gol
-        // xG 1.5 home vs 0.8 away = home tem mais chance
         const totalXG = homeXG + awayXG;
-        if (totalXG === 0) return 0.50; // Se ninguém criou chance, é 50/50
-        
+        if (totalXG === 0) return 0.50;
         probability = Math.min(0.95, Math.max(0.15, homeXG / (totalXG / 2)));
-        
       } else if (market === 'ambos_marcam') {
-        // LIVE: chutes ao gol reais
         const homeGoals = parseInt(homeStats.goals) || 0;
         const awayGoals = parseInt(awayStats.goals) || 0;
         const homeShots = parseInt(homeStats.shots_on_target) || 0;
         const awayShots = parseInt(awayStats.shots_on_target) || 0;
-        
-        // Se ambos já marcaram: 100%
         if (homeGoals > 0 && awayGoals > 0) return 0.99;
-        
-        // Se um não marcou mas tem chutes: aumenta probabilidade
         const probability_base = 0.40;
         const probability_adjusted = probability_base + (homeShots * 0.05) + (awayShots * 0.05);
         probability = Math.min(0.90, probability_adjusted);
-        
       } else if (market === 'handicap_asiatico') {
-        // LIVE: xG real do mandante
         const homeXG = parseFloat(homeStats.expected_goals) || 0;
         probability = Math.min(0.90, Math.max(0.25, homeXG / 2.5));
-        
       } else if (market === 'over_under_escanteios') {
-        // LIVE: escanteios reais já batidos
         const homeCorners = parseInt(homeStats.corners) || 0;
         const awayCorners = parseInt(awayStats.corners) || 0;
         const totalCorners = homeCorners + awayCorners;
         const elapsed = parseInt(match.elapsed) || 0;
-        
-        // Se já tem mais de 8 escanteios e ainda faltam tempo: muito provável pass 8.5
         const estimatedFinal = (totalCorners / Math.max(1, elapsed)) * 90;
         probability = Math.min(0.95, 0.35 + (estimatedFinal / 30));
-        
       } else if (market === 'over_under_cartoes') {
-        // LIVE: cartões reais já mostrados
         const homeCards = parseInt(homeStats.yellow_cards) || 0;
         const awayCards = parseInt(awayStats.yellow_cards) || 0;
         const totalCards = homeCards + awayCards;
         const elapsed = parseInt(match.elapsed) || 0;
-        
-        // Se já tem 4+ cartões: provavelmente passa 4.5
         const estimatedFinal = (totalCards / Math.max(1, elapsed)) * 90;
         probability = Math.min(0.95, 0.35 + (estimatedFinal / 10));
       }
@@ -194,7 +150,6 @@ class EVOpportunitiesSystemPRO {
       probability = Math.min(0.95, Math.max(0.30, probability));
       return probability;
     } catch (err) {
-      console.error('Error calculating LIVE probability:', err.message);
       return null;
     }
   }
@@ -255,10 +210,8 @@ class EVOpportunitiesSystemPRO {
           const markets = Object.keys(CONFIG.MERCADOS_CONFIG).filter(m => CONFIG.MERCADOS_CONFIG[m].ativo);
           
           for (const market of markets) {
-            // ✅ USA CÁLCULO PRÉ-LIVE (HISTÓRICO)
             const probability = this.calculateProbabilityPreLive(match, market);
             if (!probability) continue;
-            
             const odd = this.getBestOdds(match, market);
             if (!odd) continue;
             const ev = this.calculateEV(probability, odd);
@@ -272,12 +225,12 @@ class EVOpportunitiesSystemPRO {
 ${tierEmoji} *${leagueName}* [${tier}]
 🏠 ${homeTeam} vs ${awayTeam}
 📊 Mercado: ${marketName}
-📈 Probabilidade (histórico): ${(probability * 100).toFixed(1)}%
+📈 Probabilidade: ${(probability * 100).toFixed(1)}%
 💰 Odd: ${odd.toFixed(2)}
 ✅ EV: *${ev.toFixed(2)}%*
 ⏱️ Tempo: ${minutesUntilKickoff.toFixed(0)} min antes
 
-💡 Obs: Calculado com dados históricos (jogo ainda não começou)
+💡 Obs: Dados históricos (jogo ainda não começou)
               `;
 
               await bot.sendMessage(TELEGRAM_USER_ID, message, { parse_mode: 'Markdown' });
@@ -317,10 +270,8 @@ ${tierEmoji} *${leagueName}* [${tier}]
         const markets = Object.keys(CONFIG.MERCADOS_CONFIG).filter(m => CONFIG.MERCADOS_CONFIG[m].ativo);
         
         for (const market of markets) {
-          // ✅ USA CÁLCULO LIVE (TEMPO REAL COM xG)
           const probability = this.calculateProbabilityLive(match, market);
           if (!probability) continue;
-          
           const odd = this.getBestOdds(match, market);
           if (!odd) continue;
           const ev = this.calculateEV(probability, odd);
@@ -335,12 +286,12 @@ ${tierEmoji} *${leagueName}* [${tier}]
 ${tierEmoji} *${leagueName}* [${tier}]
 🏠 ${homeTeam} vs ${awayTeam}
 📊 Mercado: ${marketName}
-📈 Probabilidade (tempo real): ${(probability * 100).toFixed(1)}%
+📈 Probabilidade: ${(probability * 100).toFixed(1)}%
 💰 Odd: ${odd.toFixed(2)}
 ✅ EV: *${ev.toFixed(2)}%*
 ⏱️ Tempo: ${elapsed}'
 
-💡 Obs: Calculado com xG e dados reais do jogo acontecendo AGORA
+💡 Obs: xG e dados reais do jogo (AGORA)
             `;
 
             await bot.sendMessage(TELEGRAM_USER_ID, message, { parse_mode: 'Markdown' });
@@ -401,16 +352,14 @@ ${tierEmoji} *${leagueName}* [${tier}]
               );
 
               const emoji = greenRed === 'GREEN' ? '🟢' : '🔴';
-              const calculationType = opp.calculation_type === 'REALTIME' ? '⚡ LIVE' : '🎯 PRÉ-LIVE';
+              const calcType = opp.calculation_type === 'REALTIME' ? '⚡LIVE' : '🎯PRÉ';
               const resultMsg = `
-${emoji} *RESULTADO - ${greenRed}* ${calculationType}
+${emoji} *${greenRed}* ${calcType}
 
-${opp.league}
+${opp.league} | ${opp.tier}
 ${opp.home_team} vs ${opp.away_team}
-Mercado: ${opp.market}
-Odd: ${opp.odd}
-EV: ${opp.ev_percentage}%
-ROI: ${roiPercentage.toFixed(2)}%
+${opp.market} @ ${opp.odd}
+EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
               `;
 
               await bot.sendMessage(TELEGRAM_USER_ID, resultMsg, { parse_mode: 'Markdown' });
@@ -427,54 +376,244 @@ ROI: ${roiPercentage.toFixed(2)}%
     }
   }
 
-  async sendDailySummary() {
+  // ============================================================
+  // RELATÓRIO PROFISSIONAL DETALHADO
+  // ============================================================
+  async sendProfessionalDailySummary() {
     try {
-      const stats = await pool.query(
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // DADOS GERAIS
+      const generalStats = await pool.query(
         `SELECT 
            COUNT(*) as total,
-           SUM(CASE WHEN green_red = 'GREEN' THEN 1 ELSE 0 END) as profitable,
+           SUM(CASE WHEN green_red = 'GREEN' THEN 1 ELSE 0 END) as greens,
+           SUM(CASE WHEN green_red = 'RED' THEN 1 ELSE 0 END) as reds,
            AVG(CAST(ev_percentage AS FLOAT)) as avg_ev,
-           AVG(CAST(roi_percentage AS FLOAT)) as avg_roi,
-           SUM(CASE WHEN calculation_type = 'HISTORICAL' THEN 1 ELSE 0 END) as pre_live_count,
-           SUM(CASE WHEN calculation_type = 'REALTIME' THEN 1 ELSE 0 END) as live_count
+           AVG(CAST(roi_percentage AS FLOAT)) as avg_roi
          FROM opportunities 
-         WHERE DATE(created_at) = CURRENT_DATE AND status = 'RESOLVED'`
+         WHERE DATE(created_at) >= $1 AND status = 'RESOLVED'`,
+        [today]
       );
 
-      const row = stats.rows[0];
-      const total = parseInt(row.total) || 0;
-      const profitable = parseInt(row.profitable) || 0;
-      const winRate = total > 0 ? ((profitable / total) * 100).toFixed(1) : 0;
-      const preCount = parseInt(row.pre_live_count) || 0;
-      const liveCount = parseInt(row.live_count) || 0;
+      // POR MERCADO
+      const byMarket = await pool.query(
+        `SELECT 
+           market,
+           COUNT(*) as total,
+           SUM(CASE WHEN green_red = 'GREEN' THEN 1 ELSE 0 END) as greens,
+           AVG(CAST(ev_percentage AS FLOAT)) as avg_ev,
+           AVG(CAST(roi_percentage AS FLOAT)) as avg_roi
+         FROM opportunities 
+         WHERE DATE(created_at) >= $1 AND status = 'RESOLVED'
+         GROUP BY market
+         ORDER BY total DESC`,
+        [today]
+      );
 
-      const message = `
-📊 *RESUMO DIÁRIO - ${new Date().toLocaleDateString('pt-BR')}*
+      // POR TIER
+      const byTier = await pool.query(
+        `SELECT 
+           tier,
+           COUNT(*) as total,
+           SUM(CASE WHEN green_red = 'GREEN' THEN 1 ELSE 0 END) as greens,
+           AVG(CAST(ev_percentage AS FLOAT)) as avg_ev,
+           AVG(CAST(roi_percentage AS FLOAT)) as avg_roi
+         FROM opportunities 
+         WHERE DATE(created_at) >= $1 AND status = 'RESOLVED'
+         GROUP BY tier
+         ORDER BY tier`,
+        [today]
+      );
 
-📈 Oportunidades identificadas: ${this.dailyStats.identified}
-✅ Oportunidades resolvidas: ${this.dailyStats.resolved}
-🟢 Oportunidades lucrativas (GREEN): ${profitable}
-🔴 Oportunidades no prejuízo (RED): ${total - profitable}
-💹 Taxa de acerto: ${winRate}%
-📊 EV médio: ${(row.avg_ev || 0).toFixed(2)}%
-💰 ROI médio: ${(row.avg_roi || 0).toFixed(2)}%
+      // PRÉ-LIVE vs LIVE
+      const byType = await pool.query(
+        `SELECT 
+           calculation_type,
+           COUNT(*) as total,
+           SUM(CASE WHEN green_red = 'GREEN' THEN 1 ELSE 0 END) as greens,
+           AVG(CAST(ev_percentage AS FLOAT)) as avg_ev,
+           AVG(CAST(roi_percentage AS FLOAT)) as avg_roi
+         FROM opportunities 
+         WHERE DATE(created_at) >= $1 AND status = 'RESOLVED'
+         GROUP BY calculation_type`,
+        [today]
+      );
 
-📋 Breakdown:
-🎯 PRÉ-LIVE (Histórico): ${preCount} apostas
-⚡ LIVE (Tempo Real): ${liveCount} apostas
+      // DADOS ONTEM (para trending)
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const yesterdayStats = await pool.query(
+        `SELECT 
+           COUNT(*) as total,
+           SUM(CASE WHEN green_red = 'GREEN' THEN 1 ELSE 0 END) as greens,
+           AVG(CAST(roi_percentage AS FLOAT)) as avg_roi
+         FROM opportunities 
+         WHERE DATE(created_at) >= $1 AND DATE(created_at) < $2 AND status = 'RESOLVED'`,
+        [yesterday, today]
+      );
 
-💡 Status: Sistema validando modelo com cálculos diferenciados
-      `;
+      // PROCESSANDO DADOS
+      const g = generalStats.rows[0];
+      const total = parseInt(g.total) || 0;
+      const greens = parseInt(g.greens) || 0;
+      const reds = parseInt(g.reds) || 0;
+      const winRate = total > 0 ? ((greens / total) * 100).toFixed(1) : 0;
+      const avgEV = (g.avg_ev || 0).toFixed(2);
+      const avgROI = (g.avg_roi || 0).toFixed(2);
+
+      // TRENDING
+      const yesterdayRow = yesterdayStats.rows[0];
+      const yesterdayROI = (yesterdayRow.avg_roi || 0).toFixed(2);
+      const roiTrending = (avgROI - yesterdayROI > 0.5) ? '📈' : (avgROI - yesterdayROI < -0.5) ? '📉' : '➡️';
+
+      // ALERTAS / RECOMENDAÇÕES
+      let alerts = [];
+      let recommendations = [];
+
+      if (winRate < 45) {
+        alerts.push('⚠️ Win rate BAIXO (<45%)');
+        recommendations.push('❗ Aumentar EV mínimo por +1%');
+      } else if (winRate > 70) {
+        recommendations.push('✅ Pode reduzir EV mínimo (-0.5%)');
+      }
+
+      if (total < 5) {
+        alerts.push('⚠️ Pouco volume (<5 apostas)');
+        recommendations.push('❗ Reduzir EV mínimo (-0.5%)');
+      }
+
+      if (avgROI < 0) {
+        alerts.push('🔴 ROI NEGATIVO!');
+        recommendations.push('❗ Revisar parâmetros urgentemente');
+      }
+
+      // BUILD MENSAGEM
+      let message = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 *RELATÓRIO PROFISSIONAL DIÁRIO*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📅 ${today.toLocaleDateString('pt-BR', {weekday: 'long'})}, ${today.toLocaleDateString('pt-BR')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📈 *RESUMO GERAL*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📍 Total identificadas: ${this.dailyStats.identified}
+✅ Total resolvidas: ${total}
+🟢 GREENs: ${greens} | 🔴 REDs: ${reds}
+💹 *Win Rate: ${winRate}%*
+📊 EV médio: ${avgEV}%
+💰 *ROI médio: ${avgROI}%* ${roiTrending}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 *POR MERCADO*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+      for (const row of byMarket.rows) {
+        const mTotal = parseInt(row.total);
+        const mGreens = parseInt(row.greens);
+        const mWR = mTotal > 0 ? ((mGreens / mTotal) * 100).toFixed(0) : 0;
+        const mROI = (row.avg_roi || 0).toFixed(1);
+        const roiStatus = mROI < 0 ? '❌' : mROI < 10 ? '⚠️' : '✅';
+        
+        message += `${row.market}: ${mTotal} apostas, ${mWR}% WR, ${mROI}% ROI ${roiStatus}\n`;
+
+        if (mROI < -5 && mTotal >= 3) {
+          alerts.push(`⚠️ ${row.market} está perdendo (${mROI}% ROI)`);
+          recommendations.push(`❗ Aumentar EV mín de "${row.market}" ou desabilitar`);
+        }
+      }
+
+      message += `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 *POR TIER*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+      for (const row of byTier.rows) {
+        const tTotal = parseInt(row.total);
+        const tGreens = parseInt(row.greens);
+        const tWR = tTotal > 0 ? ((tGreens / tTotal) * 100).toFixed(0) : 0;
+        const tROI = (row.avg_roi || 0).toFixed(1);
+        const tierEmoji = row.tier === 'TIER1' ? '🔴' : row.tier === 'TIER2' ? '🟡' : '🟢';
+        
+        message += `${tierEmoji} ${row.tier}: ${tTotal} apostas, ${tWR}% WR, ${tROI}% ROI\n`;
+      }
+
+      message += `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ *PRÉ-LIVE vs LIVE*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+      for (const row of byType.rows) {
+        const typeTotal = parseInt(row.total);
+        const typeGreens = parseInt(row.greens);
+        const typeWR = typeTotal > 0 ? ((typeGreens / typeTotal) * 100).toFixed(0) : 0;
+        const typeROI = (row.avg_roi || 0).toFixed(1);
+        const typeEmoji = row.calculation_type === 'REALTIME' ? '⚡' : '🎯';
+        const typeName = row.calculation_type === 'REALTIME' ? 'LIVE' : 'PRÉ-LIVE';
+        
+        message += `${typeEmoji} ${typeName}: ${typeTotal} apostas, ${typeWR}% WR, ${typeROI}% ROI\n`;
+
+        if (typeWR < 45 && typeTotal >= 3) {
+          alerts.push(`⚠️ ${typeName} tá impreciso (${typeWR}% WR)`);
+          recommendations.push(`❗ Revisar probabilidades de ${typeName}`);
+        }
+      }
+
+      // ALERTAS
+      if (alerts.length > 0) {
+        message += `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ *ALERTAS*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+        for (const alert of alerts) {
+          message += `${alert}\n`;
+        }
+      }
+
+      // RECOMENDAÇÕES
+      if (recommendations.length > 0) {
+        message += `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 *RECOMENDAÇÕES DE AÇÃO*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+        for (const rec of recommendations) {
+          message += `${rec}\n`;
+        }
+      }
+
+      message += `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 *STATUS GERAL*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+      if (winRate >= 55 && avgROI >= 15) {
+        message += `✅ SISTEMA VALIDADO! Continue assim.`;
+      } else if (winRate >= 50 && avgROI >= 5) {
+        message += `⚠️ SISTEMA OK. Espere mais dias de dados.`;
+      } else {
+        message += `❌ SISTEMA PRECISA AJUSTES. Implemente recomendações acima.`;
+      }
+
+      message += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
       await bot.sendMessage(TELEGRAM_USER_ID, message, { parse_mode: 'Markdown' });
-      console.log('✅ Daily summary sent');
+      console.log('✅ Professional daily summary sent');
     } catch (error) {
-      console.error('❌ Error sending daily summary:', error.message);
+      console.error('❌ Error sending professional summary:', error.message);
     }
   }
 
   start() {
-    console.log('🚀 EV Opportunities System PRO v2.1 (DIFERENCIADO)');
+    console.log('🚀 EV Opportunities System PRO v2.2 (RELATÓRIO PROFISSIONAL)');
     console.log('📡 Connecting to StatPal API...');
     this.initDatabase();
 
@@ -487,39 +626,46 @@ ROI: ${roiPercentage.toFixed(2)}%
     const resultInterval = (CONFIG.SCHEDULERS.RESULTADO_CHECK_INTERVALO_MIN || 5) * 60 * 1000;
     setInterval(() => this.checkResultsAndUpdateGreenRed(), resultInterval);
 
+    // RELATÓRIO PROFISSIONAL TODOS OS DIAS ÀS 23:59
     setInterval(() => {
       const now = new Date();
       if (now.getHours() === (CONFIG.SCHEDULERS.RESUMO_DIARIO_HORA || 23) && 
           now.getMinutes() === (CONFIG.SCHEDULERS.RESUMO_DIARIO_MINUTO || 59)) {
-        this.sendDailySummary();
+        this.sendProfessionalDailySummary();
       }
     }, 60 * 1000);
 
     console.log('✅ Telegram bot connected');
-    console.log('✅ System running with DIFFERENTIATED calculations');
+    console.log('✅ System running with PROFESSIONAL REPORTING');
 
     const startMsg = `
-✅ *Sistema de Oportunidades EV+ PRO v2.1 ATIVO*
+✅ *Sistema de Oportunidades EV+ PRO v2.2 ATIVO*
 
-📊 Conectado ao StatPal API (REAL)
+📊 *Conectado ao StatPal API*
 🎯 PRÉ-LIVE: Cálculo HISTÓRICO (5 minutos)
 ⚡ LIVE: Cálculo TEMPO REAL com xG (5 segundos)
-📍 Cobertura: 64 ligas globais (24h)
-💰 Mercados: 5 (Vitória, Ambos, Handicap, Escanteios, Cartões)
 
-🔴 TIER1 (20 ligas) - EV mín: 2-3%
-🟡 TIER2 (21 ligas) - EV mín: 2.5-4%
-🟢 TIER3 (23 ligas) - EV mín: 3.5-5.5%
+📍 64 ligas globais | 💰 5 mercados | 24/7
 
-📋 Diferenciação:
-🎯 PRÉ-LIVE: Dados históricos dos times (sem dados do jogo)
-⚡ LIVE: xG real, chutes reais, cartões reais (jogo acontecendo)
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 *RELATÓRIO PROFISSIONAL DIÁRIO*
+━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🟢 GREEN/RED: Ativado
-📊 ROI Tracking: Ativado
-📈 Relatórios: Diários com breakdown
+Você receberá ÀS 23:59 TODOS OS DIAS:
+📈 Resumo geral (Win Rate, ROI, EV)
+📋 Breakdown por MERCADO
+🎯 Breakdown por TIER (1,2,3)
+⚡ Análise PRÉ-LIVE vs LIVE
+⚠️ Alertas se algo tá fora do padrão
+🔧 Recomendações de ação
 
-Sistema pronto para validação precisa! 🚀
+Isso vai ajudar você a:
+✅ Identificar padrões
+✅ Saber o que tá funcionando
+✅ Saber o que alterar
+✅ Escalar com confiança
+
+Sistema pronto! 🚀
     `;
 
     bot.sendMessage(TELEGRAM_USER_ID, startMsg, { parse_mode: 'Markdown' })
