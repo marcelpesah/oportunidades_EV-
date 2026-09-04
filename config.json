@@ -73,39 +73,106 @@
     }
   },
 
-  "FILTROS": {
-    "EV_MINIMO": 2,
-    "ODD_MINIMA": 1.4,
-    "ODD_MAXIMA": 20,
-    "PROBABILIDADE_MINIMA": 0.3,
-    "PROBABILIDADE_MAXIMA": 0.95
+  "MERCADOS_CONFIG": {
+    "vitoria_1x2": {
+      "nome": "Resultado (1x2)",
+      "ev_minimo": {
+        "TIER1": 2.0,
+        "TIER2": 2.5,
+        "TIER3": 3.5
+      },
+      "odd": {
+        "minima": 1.4,
+        "maxima": 15.0
+      },
+      "acuracia_esperada": 0.65,
+      "ativo": true
+    },
+    "ambos_marcam": {
+      "nome": "Ambos Times Marcam",
+      "ev_minimo": {
+        "TIER1": 2.0,
+        "TIER2": 2.5,
+        "TIER3": 4.0
+      },
+      "odd": {
+        "minima": 1.5,
+        "maxima": 12.0
+      },
+      "acuracia_esperada": 0.60,
+      "ativo": true
+    },
+    "handicap_asiatico": {
+      "nome": "Handicap Asiático",
+      "ev_minimo": {
+        "TIER1": 2.5,
+        "TIER2": 3.0,
+        "TIER3": 4.5
+      },
+      "odd": {
+        "minima": 1.6,
+        "maxima": 10.0
+      },
+      "acuracia_esperada": 0.62,
+      "ativo": true
+    },
+    "over_under_escanteios": {
+      "nome": "Over/Under Escanteios",
+      "ev_minimo": {
+        "TIER1": 2.5,
+        "TIER2": 3.5,
+        "TIER3": 5.0
+      },
+      "odd": {
+        "minima": 1.5,
+        "maxima": 12.0
+      },
+      "threshold": 8.5,
+      "acuracia_esperada": 0.58,
+      "ativo": true
+    },
+    "over_under_cartoes": {
+      "nome": "Over/Under Cartões",
+      "ev_minimo": {
+        "TIER1": 3.0,
+        "TIER2": 4.0,
+        "TIER3": 5.5
+      },
+      "odd": {
+        "minima": 1.5,
+        "maxima": 10.0
+      },
+      "threshold": 4.5,
+      "acuracia_esperada": 0.55,
+      "ativo": true
+    }
   },
 
-  "MERCADOS": [
-    "1x2",
-    "over_under_goals",
-    "both_teams_score",
-    "handicap_asiatico",
-    "over_under_corners",
-    "first_goal_scorer"
-  ],
-
   "SCHEDULERS": {
-    "PRE_LIVE_INTERVALO_MIN": 60,
+    "PRE_LIVE_INTERVALO_MIN": 5,
+    "PRE_LIVE_MINUTOS_ANTES": [60, 30],
+    "LIVE_INTERVALO_SEG": 5,
     "RESULTADO_CHECK_INTERVALO_MIN": 5,
     "RESUMO_DIARIO_HORA": 23,
     "RESUMO_DIARIO_MINUTO": 59
   },
 
-  "COMENTARIOS": {
-    "total_ligas": "60+ ligas globais (SEM DUPLICATAS)",
-    "tier1_ligas": 20,
-    "tier2_ligas": 21,
-    "tier3_ligas": 23,
-    "cobertura_geografica": "Europa, América do Sul, América do Norte, Ásia, África, Oceania",
-    "cobertura_horaria": "24h - matches sendo jugados o tempo todo",
-    "volume_esperado": "250-500+ matches/dia distribuídos globalmente",
+  "PARAMETROS_GLOBAIS": {
+    "probabilidade_minima": 0.30,
+    "probabilidade_maxima": 0.95,
+    "stake_por_aposta": 20,
+    "moeda": "BRL",
+    "bankroll_total": 2000,
+    "total_ligas": 64,
+    "volume_esperado_matches_dia": 250,
+    "volume_esperado_alertas_dia": 80
+  },
+
+  "INFO_SISTEMA": {
     "atualizado_em": "2026-09-03",
-    "observacao": "Cada liga aparece 1x só, sem duplicatas"
+    "versao": "2.0-Professional",
+    "cobertura": "Global 24h com PRÉ-LIVE (5 min) + LIVE (5 seg)",
+    "mercados": 5,
+    "ligas": 64
   }
 }
