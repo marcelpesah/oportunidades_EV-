@@ -80,9 +80,9 @@
         "maxima": 20.0
       },
       "ev_minimo": {
-        "TIER1": 1.0,
-        "TIER2": 1.5,
-        "TIER3": 2.0
+        "TIER1": 0.5,
+        "TIER2": 0.75,
+        "TIER3": 1.0
       }
     },
     "ambos_marcam": {
@@ -93,9 +93,9 @@
         "maxima": 20.0
       },
       "ev_minimo": {
-        "TIER1": 1.0,
-        "TIER2": 1.5,
-        "TIER3": 2.0
+        "TIER1": 0.5,
+        "TIER2": 0.75,
+        "TIER3": 1.0
       }
     },
     "handicap_asiatico": {
@@ -106,9 +106,9 @@
         "maxima": 20.0
       },
       "ev_minimo": {
-        "TIER1": 1.5,
-        "TIER2": 2.0,
-        "TIER3": 2.5
+        "TIER1": 0.75,
+        "TIER2": 1.0,
+        "TIER3": 1.5
       }
     },
     "over_under_escanteios": {
@@ -119,9 +119,9 @@
         "maxima": 20.0
       },
       "ev_minimo": {
-        "TIER1": 1.5,
-        "TIER2": 2.0,
-        "TIER3": 3.0
+        "TIER1": 0.75,
+        "TIER2": 1.0,
+        "TIER3": 1.5
       }
     },
     "over_under_cartoes": {
@@ -132,9 +132,9 @@
         "maxima": 20.0
       },
       "ev_minimo": {
-        "TIER1": 2.0,
-        "TIER2": 2.5,
-        "TIER3": 3.5
+        "TIER1": 1.0,
+        "TIER2": 1.5,
+        "TIER3": 2.0
       }
     }
   },
