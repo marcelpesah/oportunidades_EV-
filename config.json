@@ -1,178 +1,132 @@
 {
   "LIGAS": {
     "TIER1": {
-      "39": "Premier League (Inglaterra)",
-      "140": "La Liga (Espanha)",
-      "135": "Serie A (Itália)",
-      "78": "Bundesliga (Alemanha)",
-      "61": "Ligue 1 (França)",
-      "238": "Liga Portugal",
-      "87": "Eredivisie (Holanda)",
-      "75": "Super Lig (Turquia)",
+      "39": "Premier League",
+      "40": "Championship",
+      "61": "Ligue 1",
       "71": "Série A Brasil",
+      "75": "Super Lig",
+      "78": "Bundesliga",
+      "87": "Eredivisie",
       "100": "Superliga Argentina",
-      "102": "Categoría Primera A (Colômbia)",
-      "103": "Primera División (Chile)",
-      "108": "Major League Soccer (EUA)",
-      "110": "Liga MX (México)",
-      "150": "J-League (Japão)",
-      "152": "K-League 1 (Coreia do Sul)",
-      "154": "Saudi Pro League (Arábia Saudita)",
-      "155": "UAE Pro League (Emirados Árabes)",
-      "250": "A-League (Austrália)"
+      "135": "Serie A",
+      "140": "La Liga",
+      "141": "Segunda División",
+      "179": "MLS",
+      "203": "Primeira Liga",
+      "238": "Liga Portugal",
+      "262": "Liga MX"
     },
     "TIER2": {
-      "40": "Championship (Inglaterra)",
-      "141": "Segunda División (Espanha)",
-      "136": "Serie B (Itália)",
-      "79": "2. Bundesliga (Alemanha)",
-      "62": "Ligue 2 (França)",
-      "239": "Segunda Liga (Portugal)",
-      "88": "Eerste Divisie (Holanda)",
-      "72": "Série B Brasil",
-      "101": "Primera B Argentina",
-      "104": "Torneo Clausura (Peru)",
-      "105": "Primera División (Uruguai)",
-      "106": "Torneo Clausura (Venezuela)",
-      "107": "Liga Profesional Ecuatoriana",
-      "109": "USL Championship (EUA)",
-      "111": "Liga de Ascenso (México)",
-      "112": "Canadian Premier League",
-      "151": "J-League 2 (Japão)",
-      "153": "K-League 2 (Coreia do Sul)",
-      "156": "Chinese Super League",
-      "157": "Thai League 1 (Tailândia)",
-      "158": "V-League (Vietnã)",
-      "159": "Indian Super League",
-      "251": "New Zealand Premiership"
+      "50": "Scottish Premiership",
+      "51": "Belgian Pro League",
+      "52": "Super League Greece",
+      "53": "Super League Switzerland",
+      "54": "Austrian Bundesliga",
+      "55": "Ekstraklasa Poland",
+      "57": "Superliga Denmark",
+      "58": "Allsvenskan Sweden",
+      "62": "Ligue 2",
+      "73": "Primeira Divisão Portugal",
+      "79": "2. Bundesliga",
+      "88": "Eerste Divisie",
+      "136": "Serie B",
+      "142": "Segunda B",
+      "180": "USL Championship"
     },
     "TIER3": {
-      "50": "Scottish Premiership (Escócia)",
-      "51": "Belgian Pro League (Bélgica)",
-      "52": "Greek Super League (Grécia)",
-      "53": "Swiss Super League (Suíça)",
-      "54": "Austrian Bundesliga (Áustria)",
-      "55": "Polish Ekstraklasa (Polônia)",
-      "56": "Czech First League (República Checa)",
-      "57": "Danish Superliga (Dinamarca)",
-      "58": "Swedish Allsvenskan (Suécia)",
-      "59": "Norwegian Eliteserien (Noruega)",
-      "60": "Hungarian NB I (Hungria)",
-      "61": "Romanian Liga 1 (Romênia)",
-      "62": "Ukrainian Premier League (Ucrânia)",
-      "63": "Russian Premier League (Rússia)",
-      "160": "Iran Pro League (Irã)",
-      "161": "Malaysian Super League (Malásia)",
-      "200": "Egyptian Premier League (Egito)",
-      "201": "South African PSL (África do Sul)",
-      "202": "Nigerian Pro League (Nigéria)",
-      "203": "Moroccan Botola Pro (Marrocos)",
-      "204": "Ghanaian Premier League (Gana)",
-      "205": "Tanzanian Premier League (Tanzânia)",
-      "206": "Kenyan Premier League (Quênia)"
+      "59": "Eliteserien Norway",
+      "118": "K League South Korea",
+      "119": "J League Japan",
+      "120": "Super League China",
+      "121": "A League Australia",
+      "122": "Super Lig Thailand",
+      "123": "V League Vietnam",
+      "124": "ISL India",
+      "125": "Saudi Pro League",
+      "126": "UAE Pro League",
+      "127": "Turkish Super League",
+      "128": "Israeli Premier League",
+      "200": "Premier League Egypt",
+      "201": "Premier League South Africa",
+      "202": "Premier League Nigeria"
     }
   },
-
   "MERCADOS_CONFIG": {
     "vitoria_1x2": {
-      "nome": "Resultado (1x2)",
+      "nome": "Vitória 1x2",
+      "ativo": true,
+      "odd": {
+        "minima": 1.1,
+        "maxima": 20
+      },
       "ev_minimo": {
-        "TIER1": 2.0,
+        "TIER1": 2,
         "TIER2": 2.5,
         "TIER3": 3.5
-      },
-      "odd": {
-        "minima": 1.4,
-        "maxima": 15.0
-      },
-      "acuracia_esperada": 0.65,
-      "ativo": true
+      }
     },
     "ambos_marcam": {
-      "nome": "Ambos Times Marcam",
-      "ev_minimo": {
-        "TIER1": 2.0,
-        "TIER2": 2.5,
-        "TIER3": 4.0
-      },
+      "nome": "Ambos Marcam",
+      "ativo": true,
       "odd": {
-        "minima": 1.5,
-        "maxima": 12.0
+        "minima": 1.1,
+        "maxima": 20
       },
-      "acuracia_esperada": 0.60,
-      "ativo": true
+      "ev_minimo": {
+        "TIER1": 2,
+        "TIER2": 2.5,
+        "TIER3": 4
+      }
     },
     "handicap_asiatico": {
       "nome": "Handicap Asiático",
+      "ativo": true,
+      "odd": {
+        "minima": 1.1,
+        "maxima": 20
+      },
       "ev_minimo": {
         "TIER1": 2.5,
-        "TIER2": 3.0,
+        "TIER2": 3,
         "TIER3": 4.5
-      },
-      "odd": {
-        "minima": 1.6,
-        "maxima": 10.0
-      },
-      "acuracia_esperada": 0.62,
-      "ativo": true
+      }
     },
     "over_under_escanteios": {
-      "nome": "Over/Under Escanteios",
+      "nome": "Over/Under Escanteios (8.5)",
+      "ativo": true,
+      "odd": {
+        "minima": 1.1,
+        "maxima": 20
+      },
       "ev_minimo": {
         "TIER1": 2.5,
         "TIER2": 3.5,
-        "TIER3": 5.0
-      },
-      "odd": {
-        "minima": 1.5,
-        "maxima": 12.0
-      },
-      "threshold": 8.5,
-      "acuracia_esperada": 0.58,
-      "ativo": true
+        "TIER3": 5
+      }
     },
     "over_under_cartoes": {
-      "nome": "Over/Under Cartões",
-      "ev_minimo": {
-        "TIER1": 3.0,
-        "TIER2": 4.0,
-        "TIER3": 5.5
-      },
+      "nome": "Over/Under Cartões (4.5)",
+      "ativo": true,
       "odd": {
-        "minima": 1.5,
-        "maxima": 10.0
+        "minima": 1.1,
+        "maxima": 20
       },
-      "threshold": 4.5,
-      "acuracia_esperada": 0.55,
-      "ativo": true
+      "ev_minimo": {
+        "TIER1": 3,
+        "TIER2": 4,
+        "TIER3": 5.5
+      }
     }
   },
-
+  "PARAMETROS_GLOBAIS": {
+    "probabilidade_minima": 0.3,
+    "probabilidade_maxima": 0.95
+  },
   "SCHEDULERS": {
     "PRE_LIVE_INTERVALO_MIN": 5,
-    "PRE_LIVE_MINUTOS_ANTES": [60, 30],
     "LIVE_INTERVALO_SEG": 5,
     "RESULTADO_CHECK_INTERVALO_MIN": 5,
     "RESUMO_DIARIO_HORA": 23,
     "RESUMO_DIARIO_MINUTO": 59
-  },
-
-  "PARAMETROS_GLOBAIS": {
-    "probabilidade_minima": 0.30,
-    "probabilidade_maxima": 0.95,
-    "stake_por_aposta": 20,
-    "moeda": "BRL",
-    "bankroll_total": 2000,
-    "total_ligas": 64,
-    "volume_esperado_matches_dia": 250,
-    "volume_esperado_alertas_dia": 80
-  },
-
-  "INFO_SISTEMA": {
-    "atualizado_em": "2026-09-03",
-    "versao": "2.0-Professional",
-    "cobertura": "Global 24h com PRÉ-LIVE (5 min) + LIVE (5 seg)",
-    "mercados": 5,
-    "ligas": 64
   }
-}
