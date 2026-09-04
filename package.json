@@ -1,12 +1,14 @@
 {
   "name": "ev-opportunities-system-pro",
   "version": "2.5.0",
-  "description": "Sistema profissional de identificação de oportunidades de apostas com EV+ e GREEN/RED automático usando Sportmonks API real",
+  "description": "Sistema profissional de identificação de oportunidades de apostas com EV+ e GREEN/RED automático usando StatPal API real",
   "main": "ev-opportunities-system.js",
   "scripts": {
     "start": "node ev-opportunities-system.js",
-    "dev": "NODE_ENV=development node ev-opportunities-system.js"
-  },
+    "dev": "MODE_ENV=development node ev-opportunities-system.js",
+    "sync": "node sync-postgres-to-sheets.js"
+  }
+}
   "keywords": [
     "sports-betting",
     "ev-opportunities",
