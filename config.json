@@ -1,14 +1,25 @@
 {
   "LIGAS": {
     "TIER1": {
-      "39": "Premier League",
-      "140": "La Liga",
-      "135": "Serie A",
-      "78": "Bundesliga",
-      "61": "Ligue 1",
-      "71": "Série A Brasil",
+      "39": "Premier League (Inglaterra)",
+      "140": "La Liga (Espanha)",
+      "135": "Serie A (Itália)",
+      "78": "Bundesliga (Alemanha)",
+      "61": "Ligue 1 (França)",
       "238": "Liga Portugal",
-      "87": "Eredivisie"
+      "87": "Eredivisie (Holanda)",
+      "75": "Super Lig (Turquia)",
+      "71": "Série A Brasil",
+      "100": "Superliga Argentina",
+      "102": "Categoría Primera A (Colômbia)",
+      "103": "Primera División (Chile)",
+      "108": "Major League Soccer (EUA)",
+      "110": "Liga MX (México)",
+      "150": "J-League (Japão)",
+      "152": "K-League 1 (Coreia do Sul)",
+      "154": "Saudi Pro League (Arábia Saudita)",
+      "155": "UAE Pro League (Emirados Árabes)",
+      "250": "A-League (Austrália)"
     },
     "TIER2": {
       "40": "Championship (Inglaterra)",
@@ -16,18 +27,52 @@
       "136": "Serie B (Itália)",
       "79": "2. Bundesliga (Alemanha)",
       "62": "Ligue 2 (França)",
-      "72": "Série B (Brasil)",
       "239": "Segunda Liga (Portugal)",
-      "88": "Eerste Divisie (Holanda)"
+      "88": "Eerste Divisie (Holanda)",
+      "72": "Série B Brasil",
+      "101": "Primera B Argentina",
+      "104": "Torneo Clausura (Peru)",
+      "105": "Primera División (Uruguai)",
+      "106": "Torneo Clausura (Venezuela)",
+      "107": "Liga Profesional Ecuatoriana",
+      "109": "USL Championship (EUA)",
+      "111": "Liga de Ascenso (México)",
+      "112": "Canadian Premier League",
+      "151": "J-League 2 (Japão)",
+      "153": "K-League 2 (Coreia do Sul)",
+      "156": "Chinese Super League",
+      "157": "Thai League 1 (Tailândia)",
+      "158": "V-League (Vietnã)",
+      "159": "Indian Super League",
+      "251": "New Zealand Premiership"
     },
     "TIER3": {
-      "50": "Scottish Premiership",
-      "51": "Belgian Pro League",
-      "52": "Turkish Super Lig",
-      "53": "Greek Super League",
-      "54": "Swiss Super League"
+      "50": "Scottish Premiership (Escócia)",
+      "51": "Belgian Pro League (Bélgica)",
+      "52": "Greek Super League (Grécia)",
+      "53": "Swiss Super League (Suíça)",
+      "54": "Austrian Bundesliga (Áustria)",
+      "55": "Polish Ekstraklasa (Polônia)",
+      "56": "Czech First League (República Checa)",
+      "57": "Danish Superliga (Dinamarca)",
+      "58": "Swedish Allsvenskan (Suécia)",
+      "59": "Norwegian Eliteserien (Noruega)",
+      "60": "Hungarian NB I (Hungria)",
+      "61": "Romanian Liga 1 (Romênia)",
+      "62": "Ukrainian Premier League (Ucrânia)",
+      "63": "Russian Premier League (Rússia)",
+      "160": "Iran Pro League (Irã)",
+      "161": "Malaysian Super League (Malásia)",
+      "200": "Egyptian Premier League (Egito)",
+      "201": "South African PSL (África do Sul)",
+      "202": "Nigerian Pro League (Nigéria)",
+      "203": "Moroccan Botola Pro (Marrocos)",
+      "204": "Ghanaian Premier League (Gana)",
+      "205": "Tanzanian Premier League (Tanzânia)",
+      "206": "Kenyan Premier League (Quênia)"
     }
   },
+
   "FILTROS": {
     "EV_MINIMO": 2,
     "ODD_MINIMA": 1.4,
@@ -35,32 +80,32 @@
     "PROBABILIDADE_MINIMA": 0.3,
     "PROBABILIDADE_MAXIMA": 0.95
   },
-  "ALERTAS": {
-    "PRE_LIVE_60": true,
-    "PRE_LIVE_30": true,
-    "LIVE": true,
-    "LIVE_CUTOFF_HT": 35,
-    "LIVE_CUTOFF_FT": 75
-  },
+
   "MERCADOS": [
-    "Over/Under Gols",
-    "Handicap Asiático",
-    "Over/Under Escanteios",
-    "Over/Under Cartões",
-    "Primeiro Gol",
-    "Resultado Exato"
+    "1x2",
+    "over_under_goals",
+    "both_teams_score",
+    "handicap_asiatico",
+    "over_under_corners",
+    "first_goal_scorer"
   ],
+
   "SCHEDULERS": {
     "PRE_LIVE_INTERVALO_MIN": 60,
-    "LIVE_INTERVALO_MIN": 2,
     "RESULTADO_CHECK_INTERVALO_MIN": 5,
     "RESUMO_DIARIO_HORA": 23,
     "RESUMO_DIARIO_MINUTO": 59
   },
-  "NOTIFICACOES": {
-    "ENVIAR_PRELIVE": true,
-    "ENVIAR_LIVE": true,
-    "ENVIAR_RESULTADO": true,
-    "ENVIAR_RESUMO_DIARIO": true
+
+  "COMENTARIOS": {
+    "total_ligas": "60+ ligas globais (SEM DUPLICATAS)",
+    "tier1_ligas": 20,
+    "tier2_ligas": 21,
+    "tier3_ligas": 23,
+    "cobertura_geografica": "Europa, América do Sul, América do Norte, Ásia, África, Oceania",
+    "cobertura_horaria": "24h - matches sendo jugados o tempo todo",
+    "volume_esperado": "250-500+ matches/dia distribuídos globalmente",
+    "atualizado_em": "2026-09-03",
+    "observacao": "Cada liga aparece 1x só, sem duplicatas"
   }
 }
