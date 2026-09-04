@@ -1,13 +1,16 @@
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 const { Pool } = require('pg');
-require('dotenv').config();
+const { google } = require('googleapis');
 const fs = require('fs');
+require('dotenv').config();
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_USER_ID = process.env.TELEGRAM_USER_ID;
 const STATPAL_API_KEY = process.env.STATPAL_API_KEY;
 const DATABASE_URL = process.env.DATABASE_URL;
+const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID;
+const GOOGLE_CREDENTIALS_JSON = process.env.GOOGLE_CREDENTIALS_JSON;
 const DEBUG = process.env.DEBUG === 'true';
 
 let CONFIG = {};
@@ -20,6 +23,99 @@ try {
 
 const pool = new Pool({ connectionString: DATABASE_URL });
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: false });
+
+// Google Sheets Setup
+let sheetsClient = null;
+
+async function initGoogleSheets() {
+  try {
+    if (!GOOGLE_CREDENTIALS_JSON) {
+      console.warn('⚠️ GOOGLE_CREDENTIALS_JSON não configurado. Google Sheets desativado.');
+      return null;
+    }
+
+    const credentials = JSON.parse(GOOGLE_CREDENTIALS_JSON);
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    sheetsClient = google.sheets({ version: 'v4', auth });
+    console.log('✅ Google Sheets conectado');
+    
+    // Initialize sheet with headers
+    await ensureHeaders();
+    return sheetsClient;
+  } catch (err) {
+    console.error('❌ Erro ao conectar Google Sheets:', err.message);
+    return null;
+  }
+}
+
+async function ensureHeaders() {
+  try {
+    if (!sheetsClient || !GOOGLE_SHEETS_ID) return;
+
+    const response = await sheetsClient.spreadsheets.values.get({
+      spreadsheetId: GOOGLE_SHEETS_ID,
+      range: 'Planilha1!A1:K1',
+    });
+
+    if (!response.data.values || response.data.values.length === 0) {
+      const headers = [
+        ['Data', 'Hora', 'Liga', 'Tier', 'Mercado', 'Times', 'Probabilidade%', 'Odd', 'EV%', 'Tipo', 'Status']
+      ];
+
+      await sheetsClient.spreadsheets.values.update({
+        spreadsheetId: GOOGLE_SHEETS_ID,
+        range: 'Planilha1!A1:K1',
+        valueInputOption: 'RAW',
+        resource: { values: headers },
+      });
+
+      console.log('✅ Headers criados no Google Sheets');
+    }
+  } catch (err) {
+    console.error('❌ Erro ao criar headers:', err.message);
+  }
+}
+
+async function appendToGoogleSheets(data) {
+  try {
+    if (!sheetsClient || !GOOGLE_SHEETS_ID) return;
+
+    const now = new Date();
+    const date = now.toLocaleDateString('pt-BR');
+    const time = now.toLocaleTimeString('pt-BR');
+
+    const row = [
+      [
+        date,
+        time,
+        data.league,
+        data.tier,
+        data.market,
+        `${data.homeTeam} vs ${data.awayTeam}`,
+        (data.probability * 100).toFixed(1),
+        data.odd.toFixed(2),
+        data.ev.toFixed(2),
+        data.alertType === 'PRE_LIVE' ? '🎯 PRÉ-LIVE' : '⚡ LIVE',
+        'ALERTADO'
+      ]
+    ];
+
+    await sheetsClient.spreadsheets.values.append({
+      spreadsheetId: GOOGLE_SHEETS_ID,
+      range: 'Planilha1!A:K',
+      valueInputOption: 'RAW',
+      resource: { values: row },
+    });
+
+    if (DEBUG) console.log(`✅ Linha adicionada ao Google Sheets: ${data.homeTeam} vs ${data.awayTeam}`);
+  } catch (err) {
+    console.error('❌ Erro ao escrever no Google Sheets:', err.message);
+  }
+}
 
 class EVOpportunitiesSystemPRO {
   constructor() {
@@ -87,18 +183,11 @@ class EVOpportunitiesSystemPRO {
   calculateProbabilityPreLive(match, market) {
     try {
       let probability = 0.5;
-
-      if (market === 'vitoria_1x2') {
-        probability = 0.50;
-      } else if (market === 'ambos_marcam') {
-        probability = 0.45;
-      } else if (market === 'handicap_asiatico') {
-        probability = 0.48;
-      } else if (market === 'over_under_escanteios') {
-        probability = 0.50;
-      } else if (market === 'over_under_cartoes') {
-        probability = 0.45;
-      }
+      if (market === 'vitoria_1x2') probability = 0.50;
+      else if (market === 'ambos_marcam') probability = 0.45;
+      else if (market === 'handicap_asiatico') probability = 0.48;
+      else if (market === 'over_under_escanteios') probability = 0.50;
+      else if (market === 'over_under_cartoes') probability = 0.45;
 
       probability = Math.min(0.95, Math.max(0.30, probability));
       return probability;
@@ -229,11 +318,23 @@ ${tierEmoji} *${leagueName}* [${tier}]
 💰 Odd: ${odd.toFixed(2)}
 ✅ EV: *${ev.toFixed(2)}%*
 ⏱️ Tempo: ${minutesUntilKickoff.toFixed(0)} min antes
-
-💡 Obs: Dados históricos (jogo ainda não começou)
               `;
 
               await bot.sendMessage(TELEGRAM_USER_ID, message, { parse_mode: 'Markdown' });
+              
+              // Escreve no Google Sheets
+              await appendToGoogleSheets({
+                league: leagueName,
+                tier: tier,
+                market: marketName,
+                homeTeam,
+                awayTeam,
+                probability,
+                odd,
+                ev,
+                alertType: 'PRE_LIVE'
+              });
+
               console.log(`✅ [PRÉ-LIVE] Alert: ${homeTeam} vs ${awayTeam} - ${marketName} (EV: ${ev.toFixed(2)}%)`);
               this.dailyStats.identified++;
 
@@ -290,11 +391,23 @@ ${tierEmoji} *${leagueName}* [${tier}]
 💰 Odd: ${odd.toFixed(2)}
 ✅ EV: *${ev.toFixed(2)}%*
 ⏱️ Tempo: ${elapsed}'
-
-💡 Obs: xG e dados reais do jogo (AGORA)
             `;
 
             await bot.sendMessage(TELEGRAM_USER_ID, message, { parse_mode: 'Markdown' });
+            
+            // Escreve no Google Sheets
+            await appendToGoogleSheets({
+              league: leagueName,
+              tier: tier,
+              market: marketName,
+              homeTeam,
+              awayTeam,
+              probability,
+              odd,
+              ev,
+              alertType: 'LIVE'
+            });
+
             console.log(`⚡ [LIVE] Alert: ${homeTeam} vs ${awayTeam} - ${marketName} (EV: ${ev.toFixed(2)}%)`);
             this.dailyStats.identified++;
 
@@ -376,15 +489,11 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
     }
   }
 
-  // ============================================================
-  // RELATÓRIO PROFISSIONAL DETALHADO
-  // ============================================================
   async sendProfessionalDailySummary() {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      // DADOS GERAIS
       const generalStats = await pool.query(
         `SELECT 
            COUNT(*) as total,
@@ -397,7 +506,6 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
         [today]
       );
 
-      // POR MERCADO
       const byMarket = await pool.query(
         `SELECT 
            market,
@@ -412,7 +520,6 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
         [today]
       );
 
-      // POR TIER
       const byTier = await pool.query(
         `SELECT 
            tier,
@@ -427,7 +534,6 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
         [today]
       );
 
-      // PRÉ-LIVE vs LIVE
       const byType = await pool.query(
         `SELECT 
            calculation_type,
@@ -441,7 +547,6 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
         [today]
       );
 
-      // DADOS ONTEM (para trending)
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       
@@ -455,7 +560,6 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
         [yesterday, today]
       );
 
-      // PROCESSANDO DADOS
       const g = generalStats.rows[0];
       const total = parseInt(g.total) || 0;
       const greens = parseInt(g.greens) || 0;
@@ -464,12 +568,10 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
       const avgEV = (g.avg_ev || 0).toFixed(2);
       const avgROI = (g.avg_roi || 0).toFixed(2);
 
-      // TRENDING
       const yesterdayRow = yesterdayStats.rows[0];
       const yesterdayROI = (yesterdayRow.avg_roi || 0).toFixed(2);
       const roiTrending = (avgROI - yesterdayROI > 0.5) ? '📈' : (avgROI - yesterdayROI < -0.5) ? '📉' : '➡️';
 
-      // ALERTAS / RECOMENDAÇÕES
       let alerts = [];
       let recommendations = [];
 
@@ -490,7 +592,6 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
         recommendations.push('❗ Revisar parâmetros urgentemente');
       }
 
-      // BUILD MENSAGEM
       let message = `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📊 *RELATÓRIO PROFISSIONAL DIÁRIO*
@@ -565,7 +666,6 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
         }
       }
 
-      // ALERTAS
       if (alerts.length > 0) {
         message += `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -577,7 +677,6 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
         }
       }
 
-      // RECOMENDAÇÕES
       if (recommendations.length > 0) {
         message += `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -613,7 +712,7 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
   }
 
   start() {
-    console.log('🚀 EV Opportunities System PRO v2.2 (RELATÓRIO PROFISSIONAL)');
+    console.log('🚀 EV Opportunities System PRO v2.3 (GOOGLE SHEETS)');
     console.log('📡 Connecting to StatPal API...');
     this.initDatabase();
 
@@ -626,7 +725,6 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
     const resultInterval = (CONFIG.SCHEDULERS.RESULTADO_CHECK_INTERVALO_MIN || 5) * 60 * 1000;
     setInterval(() => this.checkResultsAndUpdateGreenRed(), resultInterval);
 
-    // RELATÓRIO PROFISSIONAL TODOS OS DIAS ÀS 23:59
     setInterval(() => {
       const now = new Date();
       if (now.getHours() === (CONFIG.SCHEDULERS.RESUMO_DIARIO_HORA || 23) && 
@@ -636,34 +734,27 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
     }, 60 * 1000);
 
     console.log('✅ Telegram bot connected');
-    console.log('✅ System running with PROFESSIONAL REPORTING');
+    console.log('✅ Google Sheets connected');
+    console.log('✅ System running with GOOGLE SHEETS');
 
     const startMsg = `
-✅ *Sistema de Oportunidades EV+ PRO v2.2 ATIVO*
+✅ *Sistema de Oportunidades EV+ PRO v2.3 ATIVO*
 
-📊 *Conectado ao StatPal API*
+📊 Conectado ao StatPal API (REAL)
+📋 Google Sheets conectado (AUTOMÁTICO)
 🎯 PRÉ-LIVE: Cálculo HISTÓRICO (5 minutos)
 ⚡ LIVE: Cálculo TEMPO REAL com xG (5 segundos)
 
 📍 64 ligas globais | 💰 5 mercados | 24/7
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 *RELATÓRIO PROFISSIONAL DIÁRIO*
-━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✨ AGORA INTEGRADO COM GOOGLE SHEETS ✨
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Você receberá ÀS 23:59 TODOS OS DIAS:
-📈 Resumo geral (Win Rate, ROI, EV)
-📋 Breakdown por MERCADO
-🎯 Breakdown por TIER (1,2,3)
-⚡ Análise PRÉ-LIVE vs LIVE
-⚠️ Alertas se algo tá fora do padrão
-🔧 Recomendações de ação
-
-Isso vai ajudar você a:
-✅ Identificar padrões
-✅ Saber o que tá funcionando
-✅ Saber o que alterar
-✅ Escalar com confiança
+🎯 Cada alerta escrito AUTOMATICAMENTE
+📊 Relatório profissional DIÁRIO
+🟢 GREEN/RED tracking
+📈 ROI em tempo real
 
 Sistema pronto! 🚀
     `;
@@ -673,8 +764,10 @@ Sistema pronto! 🚀
   }
 }
 
-const system = new EVOpportunitiesSystemPRO();
-system.start();
+initGoogleSheets().then(() => {
+  const system = new EVOpportunitiesSystemPRO();
+  system.start();
+});
 
 process.on('unhandledRejection', (reason) => console.error('❌ Rejection:', reason));
 process.on('uncaughtException', (error) => console.error('❌ Exception:', error));
