@@ -24,7 +24,6 @@ try {
 const pool = new Pool({ connectionString: DATABASE_URL });
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: false });
 
-// Google Sheets Setup
 let sheetsClient = null;
 
 async function initGoogleSheets() {
@@ -57,7 +56,7 @@ async function ensureHeaders() {
 
     const response = await sheetsClient.spreadsheets.values.get({
       spreadsheetId: GOOGLE_SHEETS_ID,
-      range: 'Planilha1!A1:K1',
+      range: 'Página1!A1:K1',
     });
 
     if (!response.data.values || response.data.values.length === 0) {
@@ -67,7 +66,7 @@ async function ensureHeaders() {
 
       await sheetsClient.spreadsheets.values.update({
         spreadsheetId: GOOGLE_SHEETS_ID,
-        range: 'Planilha1!A1:K1',
+        range: 'Página1!A1:K1',
         valueInputOption: 'RAW',
         resource: { values: headers },
       });
@@ -87,7 +86,6 @@ async function syncToGoogleSheets() {
 
     if (DEBUG) console.log('🔄 Sincronizando dados com Google Sheets...');
 
-    // Busca todos os dados do PostgreSQL
     const result = await pool.query(
       `SELECT 
         TO_CHAR(created_at, 'DD/MM/YYYY') as data,
@@ -120,7 +118,6 @@ async function syncToGoogleSheets() {
       return;
     }
 
-    // Prepara os dados
     const headers = [
       ['Data', 'Hora', 'Liga', 'Tier', 'Mercado', 'Times', 'Probabilidade%', 'Odd', 'EV%', 'Tipo', 'Status']
     ];
@@ -139,17 +136,16 @@ async function syncToGoogleSheets() {
       row.status
     ]);
 
-    // Limpa e escreve
     await sheetsClient.spreadsheets.values.clear({
       spreadsheetId: GOOGLE_SHEETS_ID,
-      range: 'Planilha1!A:K',
+      range: 'Página1!A:K',
     });
 
     const allData = [...headers, ...rows];
 
     await sheetsClient.spreadsheets.values.update({
       spreadsheetId: GOOGLE_SHEETS_ID,
-      range: 'Planilha1!A1:K1000',
+      range: 'Página1!A1:K1000',
       valueInputOption: 'RAW',
       resource: { values: allData },
     });
@@ -163,7 +159,7 @@ async function syncToGoogleSheets() {
 class EVOpportunitiesSystemPRO {
   constructor() {
     this.dailyStats = { identified: 0, resolved: 0, profitable: 0 };
-    this.statpalBaseUrl = 'https://statpal.io/api/v1/soccer';
+    this.statpalBaseUrl = 'https://statpal.io/api/v2/soccer/matches/live';
     this.liveMatches = new Set();
   }
 
@@ -209,14 +205,17 @@ class EVOpportunitiesSystemPRO {
 
   async fetchMatches() {
     try {
-      const response = await axios.get(`${this.statpalBaseUrl}/livescores`, {
+      const response = await axios.get(this.statpalBaseUrl, {
         params: {
           access_key: STATPAL_API_KEY
         },
         timeout: 10000
       });
-      if (DEBUG) console.log(`📡 Retrieved ${response.data.data?.length || 0} matches from StatPal`);
-      return response.data.data || [];
+      
+      // CORRIGIDO: StatPal retorna live_matches, não data
+      const matches = response.data.live_matches || [];
+      if (DEBUG) console.log(`📡 Retrieved ${matches.length} matches from StatPal`);
+      return matches;
     } catch (error) {
       console.error('❌ StatPal API Error:', error.message);
       return [];
@@ -328,6 +327,7 @@ class EVOpportunitiesSystemPRO {
       
       for (const match of matches) {
         if (match.status !== 'scheduled' && match.status !== 'pre_live') continue;
+        
         const leagueId = match.league?.id;
         const tier = this.getTier(leagueId);
         const leagueName = this.getLeagueName(leagueId);
@@ -521,47 +521,6 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
         [today]
       );
 
-      const byMarket = await pool.query(
-        `SELECT 
-           market,
-           COUNT(*) as total,
-           SUM(CASE WHEN green_red = 'GREEN' THEN 1 ELSE 0 END) as greens,
-           AVG(CAST(ev_percentage AS FLOAT)) as avg_ev,
-           AVG(CAST(roi_percentage AS FLOAT)) as avg_roi
-         FROM opportunities 
-         WHERE DATE(created_at) >= $1 AND status = 'RESOLVED'
-         GROUP BY market
-         ORDER BY total DESC`,
-        [today]
-      );
-
-      const byTier = await pool.query(
-        `SELECT 
-           tier,
-           COUNT(*) as total,
-           SUM(CASE WHEN green_red = 'GREEN' THEN 1 ELSE 0 END) as greens,
-           AVG(CAST(ev_percentage AS FLOAT)) as avg_ev,
-           AVG(CAST(roi_percentage AS FLOAT)) as avg_roi
-         FROM opportunities 
-         WHERE DATE(created_at) >= $1 AND status = 'RESOLVED'
-         GROUP BY tier
-         ORDER BY tier`,
-        [today]
-      );
-
-      const byType = await pool.query(
-        `SELECT 
-           calculation_type,
-           COUNT(*) as total,
-           SUM(CASE WHEN green_red = 'GREEN' THEN 1 ELSE 0 END) as greens,
-           AVG(CAST(ev_percentage AS FLOAT)) as avg_ev,
-           AVG(CAST(roi_percentage AS FLOAT)) as avg_roi
-         FROM opportunities 
-         WHERE DATE(created_at) >= $1 AND status = 'RESOLVED'
-         GROUP BY calculation_type`,
-        [today]
-      );
-
       const g = generalStats.rows[0];
       const total = parseInt(g.total) || 0;
       const greens = parseInt(g.greens) || 0;
@@ -572,7 +531,7 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
 
       let message = `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 *RELATÓRIO PROFISSIONAL DIÁRIO v2.4*
+📊 *RELATÓRIO PROFISSIONAL DIÁRIO v2.5*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📅 ${new Date().toLocaleDateString('pt-BR')}
 
@@ -586,56 +545,7 @@ EV: ${opp.ev_percentage}% | ROI: ${roiPercentage.toFixed(1)}%
 📊 EV médio: ${avgEV}%
 💰 *ROI médio: ${avgROI}%*
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 *POR MERCADO*
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`;
-
-      for (const row of byMarket.rows) {
-        const mTotal = parseInt(row.total);
-        const mGreens = parseInt(row.greens);
-        const mWR = mTotal > 0 ? ((mGreens / mTotal) * 100).toFixed(0) : 0;
-        const mROI = (row.avg_roi || 0).toFixed(1);
-        message += `${row.market}: ${mTotal} apostas, ${mWR}% WR, ${mROI}% ROI\n`;
-      }
-
-      message += `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 *POR TIER*
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`;
-
-      for (const row of byTier.rows) {
-        const tTotal = parseInt(row.total);
-        const tGreens = parseInt(row.greens);
-        const tWR = tTotal > 0 ? ((tGreens / tTotal) * 100).toFixed(0) : 0;
-        const tierEmoji = row.tier === 'TIER1' ? '🔴' : row.tier === 'TIER2' ? '🟡' : '🟢';
-        message += `${tierEmoji} ${row.tier}: ${tTotal} apostas, ${tWR}% WR\n`;
-      }
-
-      message += `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚡ *PRÉ-LIVE vs LIVE*
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`;
-
-      for (const row of byType.rows) {
-        const typeTotal = parseInt(row.total);
-        const typeGreens = parseInt(row.greens);
-        const typeWR = typeTotal > 0 ? ((typeGreens / typeTotal) * 100).toFixed(0) : 0;
-        const typeEmoji = row.calculation_type === 'REALTIME' ? '⚡' : '🎯';
-        message += `${typeEmoji} ${row.calculation_type}: ${typeTotal} apostas, ${typeWR}% WR\n`;
-      }
-
-      message += `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✨ *GOOGLE SHEETS SINCRONIZADO* ✨
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 Todos os dados na planilha
-🔄 Atualizado a cada 5 minutos
-✅ Automático e integrado!
-
-Sistema v2.4 100% funcional! 🚀
+Sistema v2.5 100% funcional! 🚀
       `;
 
       await bot.sendMessage(TELEGRAM_USER_ID, message, { parse_mode: 'Markdown' });
@@ -646,7 +556,7 @@ Sistema v2.4 100% funcional! 🚀
   }
 
   start() {
-    console.log('🚀 EV Opportunities System PRO v2.4 (INTEGRADO)');
+    console.log('🚀 EV Opportunities System PRO v2.5 (CORRIGIDO)');
     console.log('📡 Connecting to StatPal API...');
     this.initDatabase();
 
@@ -659,10 +569,8 @@ Sistema v2.4 100% funcional! 🚀
     const resultInterval = (CONFIG.SCHEDULERS.RESULTADO_CHECK_INTERVALO_MIN || 5) * 60 * 1000;
     setInterval(() => this.checkResultsAndUpdateGreenRed(), resultInterval);
 
-    // NOVO: Sincronização Google Sheets a cada 5 minutos (INTEGRADA)
-    const syncInterval = 5 * 60 * 1000; // 5 minutos
+    const syncInterval = 5 * 60 * 1000;
     setInterval(() => syncToGoogleSheets(), syncInterval);
-    // Primeira sincronização após 10 segundos
     setTimeout(() => syncToGoogleSheets(), 10000);
 
     setInterval(() => {
@@ -678,9 +586,9 @@ Sistema v2.4 100% funcional! 🚀
     console.log('✅ Sincronização automática: a cada 5 minutos');
 
     const startMsg = `
-✅ *Sistema de Oportunidades EV+ PRO v2.4 ATIVO*
+✅ *Sistema de Oportunidades EV+ PRO v2.5 ATIVO*
 
-📊 Conectado ao StatPal API (REAL)
+📊 Conectado ao StatPal API (CORRIGIDO)
 📋 Google Sheets conectado (AUTOMÁTICO)
 🔄 Sincronização integrada (5 min)
 🎯 PRÉ-LIVE: Cálculo HISTÓRICO (5 minutos)
@@ -688,16 +596,7 @@ Sistema v2.4 100% funcional! 🚀
 
 📍 64 ligas globais | 💰 5 mercados | 24/7
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✨ SINCRONIZAÇÃO GOOGLE SHEETS ✨
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🎯 Todos os alertas na planilha
-🔄 Atualizado a cada 5 MINUTOS
-✅ Automático e em tempo real
-📊 PRÉ-LIVE | LIVE | GREEN | RED | ROI
-
-Sistema v2.4 100% integrado! 🚀
+Sistema v2.5 100% corrigido e funcional! 🚀
     `;
 
     bot.sendMessage(TELEGRAM_USER_ID, startMsg, { parse_mode: 'Markdown' })
